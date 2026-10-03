@@ -1,18 +1,16 @@
 package com.mahfouz.app.ui.screens.invoices
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -42,6 +40,7 @@ fun InvoicesScreen(
 ) {
     val invoices by viewModel.invoices.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    val paymentFilter by viewModel.paymentFilter.collectAsState()
     var isSearchActive by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -61,10 +60,18 @@ fun InvoicesScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
                     } else {
-                        Text(
-                            text = categoryName,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Column {
+                            Text(
+                                text = categoryName,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
+                            )
+                            Text(
+                                text = "${invoices.size} فاتورة مؤرشفة",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
@@ -82,58 +89,118 @@ fun InvoicesScreen(
                     }) {
                         Icon(
                             imageVector = if (isSearchActive) Icons.Default.Close else Icons.Default.Search,
-                            contentDescription = "بحث"
+                            contentDescription = if (isSearchActive) "إغلاق البحث" else "بحث"
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onAddInvoiceClick,
                 icon = { Icon(Icons.Default.Add, contentDescription = "إضافة فاتورة") },
-                text = { Text("إضافة فاتورة") },
+                text = { Text("أرشفة فاتورة", fontWeight = FontWeight.Bold) },
                 containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White
+                contentColor = Color.White,
+                shape = RoundedCornerShape(16.dp)
             )
         }
     ) { paddingValues ->
-        if (invoices.isEmpty()) {
-            Box(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // Filter Chips
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.Receipt,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = if (searchQuery.isBlank()) "لا توجد فواتير مؤرشفة في هذه المجموعة" else "لم يتم العثور على فواتير مطابقة",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                }
+                FilterChip(
+                    selected = paymentFilter == PaymentFilterType.ALL,
+                    onClick = { viewModel.onPaymentFilterChanged(PaymentFilterType.ALL) },
+                    label = { Text("الكل") },
+                    shape = RoundedCornerShape(10.dp)
+                )
+
+                FilterChip(
+                    selected = paymentFilter == PaymentFilterType.PAID,
+                    onClick = { viewModel.onPaymentFilterChanged(PaymentFilterType.PAID) },
+                    label = { Text("مدفوعة") },
+                    leadingIcon = if (paymentFilter == PaymentFilterType.PAID) {
+                        { Icon(Icons.Default.Check, contentDescription = null, tint = PaidGreen, modifier = Modifier.size(16.dp)) }
+                    } else null,
+                    shape = RoundedCornerShape(10.dp)
+                )
+
+                FilterChip(
+                    selected = paymentFilter == PaymentFilterType.UNPAID,
+                    onClick = { viewModel.onPaymentFilterChanged(PaymentFilterType.UNPAID) },
+                    label = { Text("آجل / ديون") },
+                    leadingIcon = if (paymentFilter == PaymentFilterType.UNPAID) {
+                        { Icon(Icons.Default.WarningAmber, contentDescription = null, tint = UnpaidOrange, modifier = Modifier.size(16.dp)) }
+                    } else null,
+                    shape = RoundedCornerShape(10.dp)
+                )
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(invoices, key = { it.id }) { invoice ->
-                    InvoiceItemCard(
-                        invoice = invoice,
-                        onClick = { onInvoiceClick(invoice.id) },
-                        onDelete = { viewModel.deleteInvoice(invoice) }
-                    )
+
+            if (invoices.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = 60.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(24.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                            modifier = Modifier.size(72.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Receipt,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(36.dp),
+                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Text(
+                            text = if (searchQuery.isNotBlank()) "لم يتم العثور على أي فاتورة تطابق بحثك" else "لا توجد فواتير في هذه المجموعة حتى الآن",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = if (searchQuery.isNotBlank()) "تأكد من رقم الفاتورة أو اسم المورد" else "اضغط على زر 'أرشفة فاتورة' لإضافة وتصوير أول فاتورة",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 88.dp, top = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(invoices, key = { it.id }) { invoice ->
+                        InvoiceItemCard(
+                            invoice = invoice,
+                            onClick = { onInvoiceClick(invoice.id) },
+                            onTogglePayment = { viewModel.togglePaymentStatus(invoice) },
+                            onDelete = { viewModel.deleteInvoice(invoice) }
+                        )
+                    }
                 }
             }
         }
@@ -144,6 +211,7 @@ fun InvoicesScreen(
 fun InvoiceItemCard(
     invoice: InvoiceEntity,
     onClick: () -> Unit,
+    onTogglePayment: () -> Unit,
     onDelete: () -> Unit
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -153,10 +221,8 @@ fun InvoiceItemCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -165,39 +231,41 @@ fun InvoiceItemCard(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Invoice Photo Preview or Icon
+            // Photo Preview or Icon
             if (!invoice.imageUri.isNullOrBlank()) {
                 AsyncImage(
                     model = invoice.imageUri,
                     contentDescription = "صورة الفاتورة",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(60.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .size(64.dp)
+                        .clip(RoundedCornerShape(10.dp))
                 )
             } else {
                 Box(
                     modifier = Modifier
-                        .size(60.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                        .size(64.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Receipt,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(14.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = invoice.supplierName,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    fontSize = 16.sp,
+                    maxLines = 1
                 )
                 if (invoice.invoiceNumber.isNotBlank()) {
                     Text(
@@ -216,34 +284,46 @@ fun InvoiceItemCard(
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = String.format(Locale.getDefault(), "%,.2f ر.س", invoice.totalAmount),
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.ExtraBold,
                     fontSize = 15.sp,
                     color = MaterialTheme.colorScheme.primary
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
-                // Payment Status Badge
+                // Interactive Payment Badge that can be clicked to toggle status
                 Surface(
                     color = (if (invoice.isPaid) PaidGreen else UnpaidOrange).copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(6.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.clickable { onTogglePayment() }
                 ) {
-                    Text(
-                        text = if (invoice.isPaid) "مدفوع" else "آجل",
-                        color = if (invoice.isPaid) PaidGreen else UnpaidOrange,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(if (invoice.isPaid) PaidGreen else UnpaidOrange)
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = if (invoice.isPaid) "مدفوع" else "آجل",
+                            color = if (invoice.isPaid) PaidGreen else UnpaidOrange,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 
             IconButton(
                 onClick = { showDeleteConfirm = true },
-                modifier = Modifier.padding(start = 4.dp)
+                modifier = Modifier.padding(start = 2.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Delete,
+                    imageVector = Icons.Default.DeleteOutline,
                     contentDescription = "حذف",
                     tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
                 )
@@ -254,18 +334,22 @@ fun InvoiceItemCard(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
+            icon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
             title = { Text("حذف الفاتورة") },
-            text = { Text("هل تريد بالتأكيد حذف فاتورة المورد '${invoice.supplierName}'؟") },
+            text = { Text("هل أنت متأكد من حذف فاتورة المورد '${invoice.supplierName}'؟") },
             confirmButton = {
-                TextButton(onClick = {
-                    onDelete()
-                    showDeleteConfirm = false
-                }) {
-                    Text("حذف", color = MaterialTheme.colorScheme.error)
+                Button(
+                    onClick = {
+                        onDelete()
+                        showDeleteConfirm = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("حذف")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) {
+                OutlinedButton(onClick = { showDeleteConfirm = false }) {
                     Text("إلغاء")
                 }
             }

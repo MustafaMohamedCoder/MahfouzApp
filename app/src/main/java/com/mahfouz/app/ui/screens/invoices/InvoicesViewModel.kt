@@ -9,6 +9,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+enum class PaymentFilterType {
+    ALL, PAID, UNPAID
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class InvoicesViewModel(
     private val repository: InvoiceRepository,
@@ -18,22 +22,39 @@ class InvoicesViewModel(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    val invoices: StateFlow<List<InvoiceEntity>> = _searchQuery
-        .flatMapLatest { query ->
-            if (query.isBlank()) {
-                repository.getInvoicesByCategory(categoryId)
-            } else {
-                repository.searchInvoices(categoryId, query.trim())
-            }
+    private val _paymentFilter = MutableStateFlow(PaymentFilterType.ALL)
+    val paymentFilter: StateFlow<PaymentFilterType> = _paymentFilter.asStateFlow()
+
+    val invoices: StateFlow<List<InvoiceEntity>> = combine(
+        _searchQuery,
+        _paymentFilter
+    ) { query, filter ->
+        Pair(query, filter)
+    }.flatMapLatest { (query, filter) ->
+        val isPaid = when (filter) {
+            PaymentFilterType.ALL -> null
+            PaymentFilterType.PAID -> true
+            PaymentFilterType.UNPAID -> false
         }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+        repository.filterInvoices(categoryId, query.trim(), isPaid)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
     fun onSearchQueryChanged(query: String) {
         _searchQuery.value = query
+    }
+
+    fun onPaymentFilterChanged(filter: PaymentFilterType) {
+        _paymentFilter.value = filter
+    }
+
+    fun togglePaymentStatus(invoice: InvoiceEntity) {
+        viewModelScope.launch {
+            repository.updatePaymentStatus(invoice.id, !invoice.isPaid)
+        }
     }
 
     fun deleteInvoice(invoice: InvoiceEntity) {

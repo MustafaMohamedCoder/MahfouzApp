@@ -19,5 +19,12 @@ data class CategorySummary(
     val description: String,
     val colorHex: String,
     val invoiceCount: Int,
-    val totalSpent: Double
+    val totalSpent: Double,
+    val unpaidAmount: Double = 0.0
+)
+
+data class OverallStats(
+    val totalSpent: Double = 0.0,
+    val totalUnpaid: Double = 0.0,
+    val totalInvoices: Int = 0
 )

@@ -18,7 +18,8 @@ interface CategoryDao {
             c.description, 
             c.colorHex, 
             COUNT(i.id) AS invoiceCount, 
-            COALESCE(SUM(i.totalAmount), 0.0) AS totalSpent 
+            COALESCE(SUM(i.totalAmount), 0.0) AS totalSpent,
+            COALESCE(SUM(CASE WHEN i.isPaid = 0 THEN i.totalAmount ELSE 0.0 END), 0.0) AS unpaidAmount
         FROM categories c
         LEFT JOIN invoices i ON c.id = i.categoryId
         GROUP BY c.id

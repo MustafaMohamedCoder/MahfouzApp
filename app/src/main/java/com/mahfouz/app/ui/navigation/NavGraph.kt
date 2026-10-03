@@ -105,7 +105,10 @@ fun MahfouzNavGraph(
             InvoiceDetailScreen(
                 invoiceId = invoiceId,
                 repository = repository,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onEditInvoice = { categoryId, invId ->
+                    navController.navigate(Screen.AddEditInvoice.createRoute(categoryId, invId))
+                }
             )
         }
     }

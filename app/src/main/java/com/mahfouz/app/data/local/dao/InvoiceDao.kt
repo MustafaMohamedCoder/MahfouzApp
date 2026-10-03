@@ -19,10 +19,11 @@ interface InvoiceDao {
     @Query("""
         SELECT * FROM invoices 
         WHERE categoryId = :categoryId 
+        AND (:isPaid IS NULL OR isPaid = :isPaid)
         AND (supplierName LIKE '%' || :query || '%' OR invoiceNumber LIKE '%' || :query || '%')
         ORDER BY invoiceDate DESC
     """)
-    fun searchInvoices(categoryId: Long, query: String): Flow<List<InvoiceEntity>>
+    fun filterInvoices(categoryId: Long, query: String, isPaid: Boolean?): Flow<List<InvoiceEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertInvoice(invoice: InvoiceEntity): Long
@@ -36,13 +37,16 @@ interface InvoiceDao {
     @Update
     suspend fun updateInvoice(invoice: InvoiceEntity)
 
+    @Query("UPDATE invoices SET isPaid = :isPaid WHERE id = :invoiceId")
+    suspend fun updatePaymentStatus(invoiceId: Long, isPaid: Boolean)
+
     @Delete
     suspend fun deleteInvoice(invoice: InvoiceEntity)
 
     @Transaction
     suspend fun insertInvoiceWithItems(invoice: InvoiceEntity, items: List<InvoiceItemEntity>): Long {
         val invoiceId = insertInvoice(invoice)
-        val itemsWithId = items.map { it.copy(invoiceId = invoiceId) }
+        val itemsWithId = items.map { it.copy(id = 0, invoiceId = invoiceId) }
         insertInvoiceItems(itemsWithId)
         return invoiceId
     }
@@ -51,10 +55,16 @@ interface InvoiceDao {
     suspend fun updateInvoiceWithItems(invoice: InvoiceEntity, items: List<InvoiceItemEntity>) {
         updateInvoice(invoice)
         deleteItemsForInvoice(invoice.id)
-        val itemsWithId = items.map { it.copy(invoiceId = invoice.id) }
+        val itemsWithId = items.map { it.copy(id = 0, invoiceId = invoice.id) }
         insertInvoiceItems(itemsWithId)
     }
 
     @Query("SELECT COALESCE(SUM(totalAmount), 0.0) FROM invoices")
     fun getTotalExpenses(): Flow<Double>
+
+    @Query("SELECT COALESCE(SUM(totalAmount), 0.0) FROM invoices WHERE isPaid = 0")
+    fun getTotalUnpaidExpenses(): Flow<Double>
+
+    @Query("SELECT COUNT(*) FROM invoices")
+    fun getTotalInvoiceCount(): Flow<Int>
 }

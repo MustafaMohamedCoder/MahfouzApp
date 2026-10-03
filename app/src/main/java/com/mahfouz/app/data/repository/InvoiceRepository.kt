@@ -29,8 +29,8 @@ class InvoiceRepository(
     fun getInvoiceWithItems(invoiceId: Long): Flow<InvoiceWithItems?> =
         invoiceDao.getInvoiceWithItems(invoiceId)
 
-    fun searchInvoices(categoryId: Long, query: String): Flow<List<InvoiceEntity>> =
-        invoiceDao.searchInvoices(categoryId, query)
+    fun filterInvoices(categoryId: Long, query: String, isPaid: Boolean?): Flow<List<InvoiceEntity>> =
+        invoiceDao.filterInvoices(categoryId, query, isPaid)
 
     suspend fun insertInvoice(invoice: InvoiceEntity, items: List<InvoiceItemEntity>): Long =
         invoiceDao.insertInvoiceWithItems(invoice, items)
@@ -38,8 +38,13 @@ class InvoiceRepository(
     suspend fun updateInvoice(invoice: InvoiceEntity, items: List<InvoiceItemEntity>) =
         invoiceDao.updateInvoiceWithItems(invoice, items)
 
+    suspend fun updatePaymentStatus(invoiceId: Long, isPaid: Boolean) =
+        invoiceDao.updatePaymentStatus(invoiceId, isPaid)
+
     suspend fun deleteInvoice(invoice: InvoiceEntity) =
         invoiceDao.deleteInvoice(invoice)
 
     val totalExpenses: Flow<Double> = invoiceDao.getTotalExpenses()
+    val totalUnpaidExpenses: Flow<Double> = invoiceDao.getTotalUnpaidExpenses()
+    val totalInvoiceCount: Flow<Int> = invoiceDao.getTotalInvoiceCount()
 }

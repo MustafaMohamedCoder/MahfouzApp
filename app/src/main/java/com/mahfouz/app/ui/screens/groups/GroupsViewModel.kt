@@ -5,10 +5,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mahfouz.app.data.local.entity.CategoryEntity
 import com.mahfouz.app.data.local.entity.CategorySummary
+import com.mahfouz.app.data.local.entity.OverallStats
 import com.mahfouz.app.data.repository.InvoiceRepository
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class GroupsViewModel(
@@ -22,18 +21,38 @@ class GroupsViewModel(
             initialValue = emptyList()
         )
 
-    val totalSpent: StateFlow<Double> = repository.totalExpenses
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 0.0
-        )
+    val overallStats: StateFlow<OverallStats> = combine(
+        repository.totalExpenses,
+        repository.totalUnpaidExpenses,
+        repository.totalInvoiceCount
+    ) { spent, unpaid, count ->
+        OverallStats(totalSpent = spent, totalUnpaid = unpaid, totalInvoices = count)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = OverallStats()
+    )
 
     fun addCategory(name: String, description: String, colorHex: String) {
         viewModelScope.launch {
             if (name.isNotBlank()) {
                 repository.insertCategory(
                     CategoryEntity(
+                        name = name.trim(),
+                        description = description.trim(),
+                        colorHex = colorHex
+                    )
+                )
+            }
+        }
+    }
+
+    fun updateCategory(id: Long, name: String, description: String, colorHex: String) {
+        viewModelScope.launch {
+            val existing = repository.getCategoryById(id)
+            if (existing != null && name.isNotBlank()) {
+                repository.updateCategory(
+                    existing.copy(
                         name = name.trim(),
                         description = description.trim(),
                         colorHex = colorHex
