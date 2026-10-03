@@ -1,15 +1,20 @@
-name: Build Mahfouz APK
+name: Build and Release Mahfouz APK
 
 on:
   push:
     branches: [ "main", "master" ]
+    tags:
+      - "v*"
   pull_request:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
-    name: Build Debug APK
+    name: Build & Release APK
     runs-on: ubuntu-latest
 
     steps:
@@ -40,9 +45,48 @@ jobs:
             gradle assembleDebug --stacktrace
           fi
 
-      - name: Upload APK Artifact
+      - name: Prepare APK for Release
+        id: prepare_apk
+        run: |
+          mkdir -p release_assets
+          APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+          if [ -n "$APK_PATH" ]; then
+            cp "$APK_PATH" release_assets/Mahfouz-App.apk
+            echo "apk_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "apk_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+          else
+            TAG_NAME="v1.0.${{ github.run_number }}"
+          fi
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
+      - name: Upload APK to Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Mahfouz-App-Debug
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 14
+
+      - name: Publish GitHub Release
+        if: github.event_name != 'pull_request' && steps.prepare_apk.outputs.apk_exists == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.prepare_apk.outputs.tag_name }}
+          name: "تطبيق مَحْفُوظ - الإصدار ${{ steps.prepare_apk.outputs.tag_name }}"
+          body: |
+            ### 📱 إصدار جديد من تطبيق «مَحْفُوظ» (Mahfouz)
+            أرشيف فواتير ومشتريات المحل - نسخة أندرويد (Kotlin & Jetpack Compose).
+
+            #### 📥 التحميل المباشر والتثبيت:
+            يمكنك تحميل ملف الـ APK المرفق مباشرة وتثبيته على هاتفك الأندرويد:
+            * **اسم الملف:** `Mahfouz-App.apk`
+            * **رقم الإصدار:** `${{ steps.prepare_apk.outputs.tag_name }}`
+          files: release_assets/Mahfouz-App.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
