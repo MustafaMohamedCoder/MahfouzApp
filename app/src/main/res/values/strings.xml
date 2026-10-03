@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">محفوظ</string>
+    <string name="groups_title">مجموعات الفواتير</string>
+    <string name="add_group">إضافة مجموعة</string>
+    <string name="add_invoice">إضافة فاتورة</string>
+    <string name="invoice_details">تفاصيل الفاتورة</string>
+    <string name="group_name">اسم المجموعة</string>
+    <string name="group_desc">وصف المجموعة (اختياري)</string>
+    <string name="supplier_name">اسم المورد / الشركة</string>
+    <string name="invoice_number">رقم الفاتورة</string>
+    <string name="total_amount">المبلغ الإجمالي</string>
+    <string name="currency">ر.س</string>
+    <string name="notes">ملاحظات</string>
+    <string name="save">حفظ</string>
+    <string name="cancel">إلغاء</string>
+    <string name="delete">حذف</string>
+    <string name="edit">تعديل</string>
+    <string name="search_hint">بحث برقم الفاتورة أو المورد...</string>
+    <string name="paid">مدفوعة</string>
+    <string name="unpaid">آجل / غير مدفوعة</string>
+    <string name="take_photo">التقاط صورة الفاتورة</string>
+    <string name="choose_gallery">اختيار من المعرض</string>
+    <string name="no_invoices">لا توجد فواتير في هذه المجموعة حتى الآن</string>
+    <string name="no_groups">لا توجد مجموعات حالياً، اضغط + لإنشاء أول مجموعة</string>
+</resources>
