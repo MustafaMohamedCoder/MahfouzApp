@@ -4,8 +4,9 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,6 +26,7 @@ import coil.compose.AsyncImage
 import com.mahfouz.app.data.local.entity.InvoiceEntity
 import com.mahfouz.app.ui.theme.PaidGreen
 import com.mahfouz.app.ui.theme.UnpaidOrange
+import com.mahfouz.app.ui.utils.responsivePadding
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -41,6 +43,7 @@ fun InvoicesScreen(
     val invoices by viewModel.invoices.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val paymentFilter by viewModel.paymentFilter.collectAsState()
+    val horizontalPadding = responsivePadding()
     var isSearchActive by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -107,99 +110,114 @@ fun InvoicesScreen(
             )
         }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(paddingValues),
+            contentAlignment = Alignment.TopCenter
         ) {
-            // Filter Chips
-            Row(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .fillMaxSize()
+                    .widthIn(max = 1200.dp)
             ) {
-                FilterChip(
-                    selected = paymentFilter == PaymentFilterType.ALL,
-                    onClick = { viewModel.onPaymentFilterChanged(PaymentFilterType.ALL) },
-                    label = { Text("الكل") },
-                    shape = RoundedCornerShape(10.dp)
-                )
-
-                FilterChip(
-                    selected = paymentFilter == PaymentFilterType.PAID,
-                    onClick = { viewModel.onPaymentFilterChanged(PaymentFilterType.PAID) },
-                    label = { Text("مدفوعة") },
-                    leadingIcon = if (paymentFilter == PaymentFilterType.PAID) {
-                        { Icon(Icons.Default.Check, contentDescription = null, tint = PaidGreen, modifier = Modifier.size(16.dp)) }
-                    } else null,
-                    shape = RoundedCornerShape(10.dp)
-                )
-
-                FilterChip(
-                    selected = paymentFilter == PaymentFilterType.UNPAID,
-                    onClick = { viewModel.onPaymentFilterChanged(PaymentFilterType.UNPAID) },
-                    label = { Text("آجل / ديون") },
-                    leadingIcon = if (paymentFilter == PaymentFilterType.UNPAID) {
-                        { Icon(Icons.Default.WarningAmber, contentDescription = null, tint = UnpaidOrange, modifier = Modifier.size(16.dp)) }
-                    } else null,
-                    shape = RoundedCornerShape(10.dp)
-                )
-            }
-
-            if (invoices.isEmpty()) {
-                Box(
+                // Filter Chips
+                Row(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = 60.dp),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .padding(horizontal = horizontalPadding, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(24.dp)
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                            modifier = Modifier.size(72.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Receipt,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(36.dp),
-                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Text(
-                            text = if (searchQuery.isNotBlank()) "لم يتم العثور على أي فاتورة تطابق بحثك" else "لا توجد فواتير في هذه المجموعة حتى الآن",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = if (searchQuery.isNotBlank()) "تأكد من رقم الفاتورة أو اسم المورد" else "اضغط على زر 'أرشفة فاتورة' لإضافة وتصوير أول فاتورة",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                    }
+                    FilterChip(
+                        selected = paymentFilter == PaymentFilterType.ALL,
+                        onClick = { viewModel.onPaymentFilterChanged(PaymentFilterType.ALL) },
+                        label = { Text("الكل") },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    FilterChip(
+                        selected = paymentFilter == PaymentFilterType.PAID,
+                        onClick = { viewModel.onPaymentFilterChanged(PaymentFilterType.PAID) },
+                        label = { Text("مدفوعة") },
+                        leadingIcon = if (paymentFilter == PaymentFilterType.PAID) {
+                            { Icon(Icons.Default.Check, contentDescription = null, tint = PaidGreen, modifier = Modifier.size(16.dp)) }
+                        } else null,
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    FilterChip(
+                        selected = paymentFilter == PaymentFilterType.UNPAID,
+                        onClick = { viewModel.onPaymentFilterChanged(PaymentFilterType.UNPAID) },
+                        label = { Text("آجل / ديون") },
+                        leadingIcon = if (paymentFilter == PaymentFilterType.UNPAID) {
+                            { Icon(Icons.Default.WarningAmber, contentDescription = null, tint = UnpaidOrange, modifier = Modifier.size(16.dp)) }
+                        } else null,
+                        shape = RoundedCornerShape(10.dp)
+                    )
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 88.dp, top = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(invoices, key = { it.id }) { invoice ->
-                        InvoiceItemCard(
-                            invoice = invoice,
-                            onClick = { onInvoiceClick(invoice.id) },
-                            onTogglePayment = { viewModel.togglePaymentStatus(invoice) },
-                            onDelete = { viewModel.deleteInvoice(invoice) }
-                        )
+
+                if (invoices.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = 60.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(24.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                modifier = Modifier.size(72.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Receipt,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(36.dp),
+                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Text(
+                                text = if (searchQuery.isNotBlank()) "لم يتم العثور على أي فاتورة تطابق بحثك" else "لا توجد فواتير في هذه المجموعة حتى الآن",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = if (searchQuery.isNotBlank()) "تأكد من رقم الفاتورة أو اسم المورد" else "اضغط على زر 'أرشفة فاتورة' لإضافة وتصوير أول فاتورة",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+                } else {
+                    // Adaptive Grid for phone & tablet
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 340.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(
+                            start = horizontalPadding,
+                            end = horizontalPadding,
+                            bottom = 88.dp,
+                            top = 4.dp
+                        ),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(invoices, key = { it.id }) { invoice ->
+                            InvoiceItemCard(
+                                invoice = invoice,
+                                onClick = { onInvoiceClick(invoice.id) },
+                                onTogglePayment = { viewModel.togglePaymentStatus(invoice) },
+                                onDelete = { viewModel.deleteInvoice(invoice) }
+                            )
+                        }
                     }
                 }
             }

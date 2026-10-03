@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.sp
 import com.mahfouz.app.data.local.entity.CategorySummary
 import com.mahfouz.app.ui.theme.PaidGreen
 import com.mahfouz.app.ui.theme.UnpaidOrange
+import com.mahfouz.app.ui.utils.isTabletOrLandscape
+import com.mahfouz.app.ui.utils.responsivePadding
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,6 +39,8 @@ fun GroupsScreen(
 ) {
     val categories by viewModel.categories.collectAsState()
     val stats by viewModel.overallStats.collectAsState()
+    val isTablet = isTabletOrLandscape()
+    val horizontalPadding = responsivePadding()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var categoryToEdit by remember { mutableStateOf<CategorySummary?>(null) }
@@ -85,99 +89,109 @@ fun GroupsScreen(
             )
         }
     ) { paddingValues ->
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
-                top = paddingValues.calculateTopPadding() + 8.dp,
-                bottom = paddingValues.calculateBottomPadding() + 88.dp
-            ),
-            modifier = Modifier.fillMaxSize()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentAlignment = Alignment.TopCenter
         ) {
-            // Dashboard Summary Banner spanning both columns
-            item(span = { GridItemSpan(2) }) {
-                DashboardHeaderCard(
-                    totalSpent = stats.totalSpent,
-                    totalUnpaid = stats.totalUnpaid,
-                    totalCount = stats.totalInvoices
-                )
-            }
-
-            // Section Title
-            item(span = { GridItemSpan(2) }) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp, bottom = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "مجموعات الفواتير (${categories.size})",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "مرتبة حسب الأحدث",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 175.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                contentPadding = PaddingValues(
+                    start = horizontalPadding,
+                    end = horizontalPadding,
+                    top = 8.dp,
+                    bottom = 88.dp
+                ),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 1200.dp)
+            ) {
+                // Dashboard Banner spanning all columns
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    DashboardHeaderCard(
+                        totalSpent = stats.totalSpent,
+                        totalUnpaid = stats.totalUnpaid,
+                        totalCount = stats.totalInvoices,
+                        isTablet = isTablet
                     )
                 }
-            }
 
-            if (categories.isEmpty()) {
-                item(span = { GridItemSpan(2) }) {
-                    Box(
+                // Section Title spanning all columns
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 40.dp),
-                        contentAlignment = Alignment.Center
+                            .padding(top = 8.dp, bottom = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                modifier = Modifier.size(80.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Default.FolderOpen,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(40.dp),
-                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "لا توجد مجموعات بعد",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "أنشئ مجموعاتك لتصنيف فواتير المشتريات بسهولة\n(مثل: بضاعة البقالة، موردو اللحوم، فواتير الكهرباء)",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-                        }
+                        Text(
+                            text = "مجموعات الفواتير (${categories.size})",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "مرتبة حسب الأحدث",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
                     }
                 }
-            } else {
-                items(categories, key = { it.id }) { category ->
-                    CategoryGridCard(
-                        category = category,
-                        onClick = { onCategoryClick(category.id, category.name) },
-                        onEdit = { categoryToEdit = category },
-                        onDelete = { viewModel.deleteCategory(category.id) }
-                    )
+
+                if (categories.isEmpty()) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 40.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                    modifier = Modifier.size(80.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.FolderOpen,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(40.dp),
+                                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "لا توجد مجموعات بعد",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = "أنشئ مجموعاتك لتصنيف فواتير المشتريات بسهولة\n(مثل: بضاعة البقالة، موردو اللحوم، فواتير الكهرباء)",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    items(categories, key = { it.id }) { category ->
+                        CategoryGridCard(
+                            category = category,
+                            onClick = { onCategoryClick(category.id, category.name) },
+                            onEdit = { categoryToEdit = category },
+                            onDelete = { viewModel.deleteCategory(category.id) }
+                        )
+                    }
                 }
             }
         }
@@ -216,7 +230,8 @@ fun GroupsScreen(
 fun DashboardHeaderCard(
     totalSpent: Double,
     totalUnpaid: Double,
-    totalCount: Int
+    totalCount: Int,
+    isTablet: Boolean
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -236,9 +251,10 @@ fun DashboardHeaderCard(
                         )
                     )
                 )
-                .padding(20.dp)
+                .padding(if (isTablet) 24.dp else 20.dp)
         ) {
-            Column {
+            if (isTablet) {
+                // Tablet Layout: 3 Columns
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -248,16 +264,39 @@ fun DashboardHeaderCard(
                         Text(
                             text = "إجمالي مشتريات المحل",
                             color = Color.White.copy(alpha = 0.85f),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium
+                            fontSize = 14.sp
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = String.format(Locale.getDefault(), "%,.2f ر.س", totalSpent),
                             color = Color.White,
-                            fontSize = 24.sp,
+                            fontSize = 28.sp,
                             fontWeight = FontWeight.ExtraBold
                         )
+                    }
+
+                    if (totalUnpaid > 0) {
+                        Surface(
+                            color = Color.Black.copy(alpha = 0.25f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.WarningAmber, contentDescription = null, tint = Color(0xFFFFD166))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text("فواتير آجلة:", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                                    Text(
+                                        text = String.format(Locale.getDefault(), "%,.2f ر.س", totalUnpaid),
+                                        color = Color(0xFFFFD166),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     Surface(
@@ -265,49 +304,87 @@ fun DashboardHeaderCard(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
-                            text = "$totalCount فاتورة",
+                            text = "$totalCount فاتورة مؤرشفة",
                             color = Color.White,
-                            fontSize = 12.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
                         )
                     }
                 }
-
-                if (totalUnpaid > 0) {
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Surface(
-                        color = Color.Black.copy(alpha = 0.25f),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
+            } else {
+                // Phone Layout: Stacked
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Column {
+                            Text(
+                                text = "إجمالي مشتريات المحل",
+                                color = Color.White.copy(alpha = 0.85f),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = String.format(Locale.getDefault(), "%,.2f ر.س", totalSpent),
+                                color = Color.White,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
+
+                        Surface(
+                            color = Color.White.copy(alpha = 0.18f),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.WarningAmber,
-                                    contentDescription = null,
-                                    tint = Color(0xFFFFD166),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "$totalCount فاتورة",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+
+                    if (totalUnpaid > 0) {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Surface(
+                            color = Color.Black.copy(alpha = 0.25f),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.WarningAmber,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFFD166),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "فواتير آجلة غير مسددة:",
+                                        color = Color.White.copy(alpha = 0.9f),
+                                        fontSize = 12.sp
+                                    )
+                                }
                                 Text(
-                                    text = "فواتير آجلة غير مسددة:",
-                                    color = Color.White.copy(alpha = 0.9f),
-                                    fontSize = 12.sp
+                                    text = String.format(Locale.getDefault(), "%,.2f ر.س", totalUnpaid),
+                                    color = Color(0xFFFFD166),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
                                 )
                             }
-                            Text(
-                                text = String.format(Locale.getDefault(), "%,.2f ر.س", totalUnpaid),
-                                color = Color(0xFFFFD166),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
-                            )
                         }
                     }
                 }

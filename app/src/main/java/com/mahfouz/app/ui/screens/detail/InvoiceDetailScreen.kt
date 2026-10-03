@@ -29,6 +29,8 @@ import com.mahfouz.app.data.local.entity.InvoiceWithItems
 import com.mahfouz.app.data.repository.InvoiceRepository
 import com.mahfouz.app.ui.theme.PaidGreen
 import com.mahfouz.app.ui.theme.UnpaidOrange
+import com.mahfouz.app.ui.utils.isTabletOrLandscape
+import com.mahfouz.app.ui.utils.responsivePadding
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -46,6 +48,8 @@ fun InvoiceDetailScreen(
     val coroutineScope = rememberCoroutineScope()
     val invoiceWithItems by repository.getInvoiceWithItems(invoiceId).collectAsState(initial = null)
     val dateFormat = remember { SimpleDateFormat("yyyy/MM/dd - hh:mm a", Locale.getDefault()) }
+    val isTablet = isTabletOrLandscape()
+    val horizontalPadding = responsivePadding()
 
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var isImageFullScreen by remember { mutableStateOf(false) }
@@ -122,198 +126,184 @@ fun InvoiceDetailScreen(
             }
         } else {
             val inv = data.invoice
-            LazyColumn(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(vertical = 16.dp)
+                    .padding(paddingValues),
+                contentAlignment = Alignment.TopCenter
             ) {
-                // Receipt Photo with full screen preview trigger
-                if (!inv.imageUri.isNullOrBlank()) {
-                    item {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { isImageFullScreen = true },
-                            shape = RoundedCornerShape(16.dp),
-                            elevation = CardDefaults.cardElevation(3.dp)
-                        ) {
-                            Box(modifier = Modifier.fillMaxWidth()) {
-                                AsyncImage(
-                                    model = inv.imageUri,
-                                    contentDescription = "صورة الفاتورة",
-                                    contentScale = ContentScale.FillWidth,
+                if (isTablet) {
+                    // Two-Pane Layout for Tablets
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .widthIn(max = 1200.dp)
+                            .padding(horizontal = horizontalPadding, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        // Left Pane: Image
+                        Box(modifier = Modifier.weight(1f)) {
+                            if (!inv.imageUri.isNullOrBlank()) {
+                                Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .heightIn(max = 300.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                )
-
-                                Surface(
-                                    color = Color.Black.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .padding(10.dp)
+                                        .clickable { isImageFullScreen = true },
+                                    shape = RoundedCornerShape(16.dp),
+                                    elevation = CardDefaults.cardElevation(3.dp)
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    ) {
-                                        Icon(Icons.Default.ZoomIn, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("تكبير الصورة", color = Color.White, fontSize = 11.sp)
+                                    Box(modifier = Modifier.fillMaxWidth()) {
+                                        AsyncImage(
+                                            model = inv.imageUri,
+                                            contentDescription = "صورة الفاتورة",
+                                            contentScale = ContentScale.Fit,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .heightIn(max = 500.dp)
+                                                .clip(RoundedCornerShape(16.dp))
+                                        )
+
+                                        Surface(
+                                            color = Color.Black.copy(alpha = 0.5f),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier
+                                                .align(Alignment.BottomEnd)
+                                                .padding(12.dp)
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            ) {
+                                                Icon(Icons.Default.ZoomIn, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text("تكبير", color = Color.White, fontSize = 11.sp)
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(250.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Icon(Icons.Default.Receipt, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text("لا توجد صورة مرفقة لهذه الفاتورة", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                }
 
-                // Summary Card
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(2.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(18.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        // Right Pane: Details & Items
+                        LazyColumn(
+                            modifier = Modifier.weight(1.2f),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = inv.supplierName,
-                                        fontSize = 20.sp,
-                                        fontWeight = FontWeight.ExtraBold
-                                    )
-                                    if (inv.invoiceNumber.isNotBlank()) {
-                                        Text(
-                                            text = "رقم الفاتورة: ${inv.invoiceNumber}",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                                        )
-                                    }
-                                }
-
-                                // Interactive toggle badge
-                                Surface(
-                                    color = (if (inv.isPaid) PaidGreen else UnpaidOrange).copy(alpha = 0.15f),
-                                    shape = RoundedCornerShape(10.dp),
-                                    modifier = Modifier.clickable {
+                            item {
+                                InvoiceSummaryCard(
+                                    inv = inv,
+                                    dateFormat = dateFormat,
+                                    onTogglePaid = {
                                         coroutineScope.launch {
                                             repository.updatePaymentStatus(inv.id, !inv.isPaid)
                                         }
                                     }
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = if (inv.isPaid) Icons.Default.CheckCircle else Icons.Default.WarningAmber,
-                                            contentDescription = null,
-                                            tint = if (inv.isPaid) PaidGreen else UnpaidOrange,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = if (inv.isPaid) "مدفوعة" else "آجل / دين",
-                                            color = if (inv.isPaid) PaidGreen else UnpaidOrange,
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-                            }
-
-                            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("تاريخ الفاتورة:", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-                                Text(dateFormat.format(Date(inv.invoiceDate)), fontWeight = FontWeight.Medium)
-                            }
-
-                            if (inv.notes.isNotBlank()) {
-                                Column {
-                                    Text("ملاحظات:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(inv.notes, style = MaterialTheme.typography.bodyMedium)
-                                }
-                            }
-
-                            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("المبلغ الإجمالي:", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                Text(
-                                    text = String.format(Locale.getDefault(), "%,.2f ر.س", inv.totalAmount),
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 22.sp,
-                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
-                        }
-                    }
-                }
 
-                // Items list
-                if (data.items.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "الأصناف والسلع المشتراة (${data.items.size})",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    items(data.items) { item ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            elevation = CardDefaults.cardElevation(1.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(14.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text(item.productName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                                    Spacer(modifier = Modifier.height(2.dp))
+                            if (data.items.isNotEmpty()) {
+                                item {
                                     Text(
-                                        text = "${item.quantity} × ${item.unitPrice} ر.س",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                                        text = "الأصناف والسلع (${data.items.size})",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
 
+                                items(data.items) { item ->
+                                    InvoiceItemDetailCard(item)
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Single Column Layout for Phones
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(vertical = 16.dp)
+                    ) {
+                        if (!inv.imageUri.isNullOrBlank()) {
+                            item {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { isImageFullScreen = true },
+                                    shape = RoundedCornerShape(16.dp),
+                                    elevation = CardDefaults.cardElevation(3.dp)
+                                ) {
+                                    Box(modifier = Modifier.fillMaxWidth()) {
+                                        AsyncImage(
+                                            model = inv.imageUri,
+                                            contentDescription = "صورة الفاتورة",
+                                            contentScale = ContentScale.FillWidth,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .heightIn(max = 300.dp)
+                                                .clip(RoundedCornerShape(16.dp))
+                                        )
+
+                                        Surface(
+                                            color = Color.Black.copy(alpha = 0.5f),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier
+                                                .align(Alignment.BottomEnd)
+                                                .padding(10.dp)
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            ) {
+                                                Icon(Icons.Default.ZoomIn, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text("تكبير الصورة", color = Color.White, fontSize = 11.sp)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        item {
+                            InvoiceSummaryCard(
+                                inv = inv,
+                                dateFormat = dateFormat,
+                                onTogglePaid = {
+                                    coroutineScope.launch {
+                                        repository.updatePaymentStatus(inv.id, !inv.isPaid)
+                                    }
+                                }
+                            )
+                        }
+
+                        if (data.items.isNotEmpty()) {
+                            item {
                                 Text(
-                                    text = String.format(Locale.getDefault(), "%,.2f ر.س", item.subtotal),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp,
-                                    color = MaterialTheme.colorScheme.primary
+                                    text = "الأصناف والسلع المشتراة (${data.items.size})",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
                                 )
+                            }
+
+                            items(data.items) { item ->
+                                InvoiceItemDetailCard(item)
                             }
                         }
                     }
@@ -383,5 +373,141 @@ fun InvoiceDetailScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+fun InvoiceSummaryCard(
+    inv: com.mahfouz.app.data.local.entity.InvoiceEntity,
+    dateFormat: SimpleDateFormat,
+    onTogglePaid: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = inv.supplierName,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                    if (inv.invoiceNumber.isNotBlank()) {
+                        Text(
+                            text = "رقم الفاتورة: ${inv.invoiceNumber}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+
+                Surface(
+                    color = (if (inv.isPaid) PaidGreen else UnpaidOrange).copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.clickable { onTogglePaid() }
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (inv.isPaid) Icons.Default.CheckCircle else Icons.Default.WarningAmber,
+                            contentDescription = null,
+                            tint = if (inv.isPaid) PaidGreen else UnpaidOrange,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (inv.isPaid) "مدفوعة" else "آجل / دين",
+                            color = if (inv.isPaid) PaidGreen else UnpaidOrange,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("تاريخ الفاتورة:", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                Text(dateFormat.format(Date(inv.invoiceDate)), fontWeight = FontWeight.Medium)
+            }
+
+            if (inv.notes.isNotBlank()) {
+                Column {
+                    Text("ملاحظات:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(inv.notes, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+
+            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("المبلغ الإجمالي:", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(
+                    text = String.format(Locale.getDefault(), "%,.2f ر.س", inv.totalAmount),
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 22.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun InvoiceItemDetailCard(item: com.mahfouz.app.data.local.entity.InvoiceItemEntity) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(item.productName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "${item.quantity} × ${item.unitPrice} ر.س",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                )
+            }
+
+            Text(
+                text = String.format(Locale.getDefault(), "%,.2f ر.س", item.subtotal),
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
     }
 }
